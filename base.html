@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zer0Cloud Security Audit Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i class="fas fa-times"></i>
+        </button>
+        <h2><i class="fas fa-shield-alt"></i> Zer0Cloud</h2>
+        <a href="/" class="nav-link"><i class="fas fa-home"></i> Home</a>
+        <a href="/scan" class="nav-link"><i class="fas fa-search"></i> Scan</a>
+        <a href="/report" class="nav-link"><i class="fas fa-chart-bar"></i> Reports</a>
+        <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Settings</a>
+    </div>
+    
+    <div class="content">
+        <div class="navbar">
+            <button class="mobile-menu-btn" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h3><i class="fas fa-shield-alt"></i> Zer0Cloud Security Audit Tool</h3>
+            <div class="navbar-right">
+                <span class="status-indicator success"></span>
+                <span id="connectionStatus">Connected</span>
+            </div>
+        </div>
+        
+        <div id="alertContainer"></div>
+        
+        {% block content %}{% endblock %}
+    </div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

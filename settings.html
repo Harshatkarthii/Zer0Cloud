@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="fade-in">
+    <div class="card">
+        <h2><i class="fas fa-cog"></i> Settings & Configuration</h2>
+        <p class="text-muted">Configure your cloud security audit preferences and credentials.</p>
+        
+        <form id="settingsForm" class="settings-form">
+            <div class="settings-section">
+                <h3><i class="fas fa-key"></i> AWS Credentials</h3>
+                <div class="form-group">
+                    <label for="awsAccessKey">AWS Access Key ID:</label>
+                    <input type="text" id="awsAccessKey" name="awsAccessKey" 
+                           placeholder="Enter your AWS Access Key ID" required>
+                </div>
+                <div class="form-group">
+                    <label for="awsSecretKey">AWS Secret Access Key:</label>
+                    <input type="password" id="awsSecretKey" name="awsSecretKey" 
+                           placeholder="Enter your AWS Secret Access Key" required>
+                </div>
+                <div class="form-group">
+                    <label for="awsRegion">AWS Region:</label>
+                    <select id="awsRegion" name="awsRegion">
+                        <option value="us-east-1">US East (N. Virginia)</option>
+                        <option value="us-west-2">US West (Oregon)</option>
+                        <option value="eu-west-1">Europe (Ireland)</option>
+                        <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="testConnection()">
+                    <i class="fas fa-plug"></i> Test Connection
+                </button>
+            </div>
+            
+            <div class="settings-section">
+                <h3><i class="fas fa-search"></i> Scan Preferences</h3>
+                <div class="form-group">
+                    <label for="defaultScanDepth">Default Scan Depth:</label>
+                    <select id="defaultScanDepth" name="defaultScanDepth">
+                        <option value="quick">Quick Scan (5-10 minutes)</option>
+                        <option value="standard" selected>Standard Scan (15-30 minutes)</option>
+                        <option value="deep">Deep Scan (30-60 minutes)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="autoScanEnabled">Enable Auto-Scan:</label>
+                    <input type="checkbox" id="autoScanEnabled" name="autoScanEnabled">
+                    <span class="checkbox-label">Automatically run scans every 24 hours</span>
+                </div>
+                <div class="form-group">
+                    <label for="notificationEmail">Notification Email:</label>
+                    <input type="email" id="notificationEmail" name="notificationEmail" 
+                           placeholder="Enter email for scan notifications">
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3><i class="fas fa-shield-alt"></i> Security Settings</h3>
+                <div class="form-group">
+                    <label for="sessionTimeout">Session Timeout (minutes):</label>
+                    <input type="number" id="sessionTimeout" name="sessionTimeout" 
+                           value="30" min="5" max="480">
+                </div>
+                <div class="form-group">
+                    <label for="dataRetention">Data Retention (days):</label>
+                    <input type="number" id="dataRetention" name="dataRetention" 
+                           value="90" min="1" max="365">
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="resetSettings()">
+                    <i class="fas fa-undo"></i> Reset to Defaults
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-info-circle"></i> System Information</h3>
+        <div class="system-info">
+            <div class="info-item">
+                <span class="info-label">Application Version:</span>
+                <span class="info-value">1.0.0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Last Updated:</span>
+                <span class="info-value" id="lastUpdated">Never</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Total Scans Run:</span>
+                <span class="info-value" id="totalScansRun">0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Database Status:</span>
+                <span class="info-value status-connected">Connected</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.settings-form {
+    max-width: 800px;
+}
+
+.settings-section {
+    margin-bottom: 40px;
+    padding: 25px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border-left: 4px solid #007BFF;
+}
+
+.settings-section h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 1.2rem;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.checkbox-label {
+    margin-left: 10px;
+    font-weight: normal;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.system-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #333;
+}
+
+.info-value {
+    color: #666;
+}
+
+.status-connected {
+    color: #28a745;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .system-info {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadSettings();
+    updateSystemInfo();
+});
+
+function loadSettings() {
+    // Load saved settings from localStorage or API
+    const savedSettings = JSON.parse(localStorage.getItem('zer0cloud_settings') || '{}');
+    
+    if (savedSettings.awsAccessKey) document.getElementById('awsAccessKey').value = savedSettings.awsAccessKey;
+    if (savedSettings.awsSecretKey) document.getElementById('awsSecretKey').value = savedSettings.awsSecretKey;
+    if (savedSettings.awsRegion) document.getElementById('awsRegion').value = savedSettings.awsRegion;
+    if (savedSettings.defaultScanDepth) document.getElementById('defaultScanDepth').value = savedSettings.defaultScanDepth;
+    if (savedSettings.autoScanEnabled) document.getElementById('autoScanEnabled').checked = savedSettings.autoScanEnabled;
+    if (savedSettings.notificationEmail) document.getElementById('notificationEmail').value = savedSettings.notificationEmail;
+    if (savedSettings.sessionTimeout) document.getElementById('sessionTimeout').value = savedSettings.sessionTimeout;
+    if (savedSettings.dataRetention) document.getElementById('dataRetention').value = savedSettings.dataRetention;
+}
+
+function saveSettings() {
+    const settings = {
+        awsAccessKey: document.getElementById('awsAccessKey').value,
+        awsSecretKey: document.getElementById('awsSecretKey').value,
+        awsRegion: document.getElementById('awsRegion').value,
+        defaultScanDepth: document.getElementById('defaultScanDepth').value,
+        autoScanEnabled: document.getElementById('autoScanEnabled').checked,
+        notificationEmail: document.getElementById('notificationEmail').value,
+        sessionTimeout: document.getElementById('sessionTimeout').value,
+        dataRetention: document.getElementById('dataRetention').value,
+        lastUpdated: new Date().toISOString()
+    };
+    
+    // Save to localStorage (in production, this would be sent to server)
+    localStorage.setItem('zer0cloud_settings', JSON.stringify(settings));
+    
+    showAlert('Settings saved successfully!', 'success');
+    updateSystemInfo();
+}
+
+function resetSettings() {
+    if (confirm('Are you sure you want to reset all settings to defaults?')) {
+        localStorage.removeItem('zer0cloud_settings');
+        document.getElementById('settingsForm').reset();
+        showAlert('Settings reset to defaults', 'info');
+    }
+}
+
+function testConnection() {
+    const accessKey = document.getElementById('awsAccessKey').value;
+    const secretKey = document.getElementById('awsSecretKey').value;
+    const region = document.getElementById('awsRegion').value;
+    
+    if (!accessKey || !secretKey) {
+        showAlert('Please enter both Access Key and Secret Key', 'error');
+        return;
+    }
+    
+    showAlert('Testing AWS connection...', 'info');
+    
+    // Simulate connection test
+    setTimeout(() => {
+        const success = Math.random() > 0.3; // 70% success rate for demo
+        if (success) {
+            showAlert('AWS connection successful!', 'success');
+        } else {
+            showAlert('AWS connection failed. Please check your credentials.', 'error');
+        }
+    }, 2000);
+}
+
+function updateSystemInfo() {
+    const settings = JSON.parse(localStorage.getItem('zer0cloud_settings') || '{}');
+    const lastUpdated = settings.lastUpdated ? new Date(settings.lastUpdated).toLocaleString() : 'Never';
+    document.getElementById('lastUpdated').textContent = lastUpdated;
+    
+    // Get total scans from session storage or API
+    const totalScans = localStorage.getItem('zer0cloud_total_scans') || '0';
+    document.getElementById('totalScansRun').textContent = totalScans;
+}
+
+// Form submission handler
+document.getElementById('settingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    saveSettings();
+});
+
+function showAlert(message, type) {
+    const alertContainer = document.getElementById('alertContainer');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} fade-in`;
+    alert.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        ${message}
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    alertContainer.appendChild(alert);
+    
+    setTimeout(() => {
+        if (alert.parentElement) {
+            alert.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

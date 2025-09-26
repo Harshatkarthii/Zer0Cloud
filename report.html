@@ -1,0 +1,792 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="fade-in">
+
+    <div class="card">
+        <div class="report-header">
+            <h2><i class="fas fa-chart-bar"></i> Security Audit Reports</h2>
+            <div class="report-actions">
+                <button class="btn btn-primary" onclick="refreshReports()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button class="btn btn-success" onclick="exportAllReports()">
+                    <i class="fas fa-download"></i> Export All
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="dashboard-grid">
+        <div class="card stats-card">
+            <div class="stats-icon total-scans">
+                <i class="fas fa-search"></i>
+            </div>
+            <span class="number" id="totalScans">0</span>
+            <span class="label">Total Scans</span>
+        </div>
+        
+        <div class="card stats-card">
+            <div class="stats-icon high-risk">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <span class="number" id="totalHighRisk">0</span>
+            <span class="label">High Risk Issues</span>
+        </div>
+        
+        <div class="card stats-card">
+            <div class="stats-icon medium-risk">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <span class="number" id="totalMediumRisk">0</span>
+            <span class="label">Medium Risk Issues</span>
+        </div>
+        
+        <div class="card stats-card">
+            <div class="stats-icon low-risk">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <span class="number" id="totalLowRisk">0</span>
+            <span class="label">Low Risk Issues</span>
+        </div>
+    </div>
+
+
+    <div class="card">
+        <h3><i class="fas fa-history"></i> Scan History</h3>
+        <div class="scan-history" id="scanHistory">
+            <div class="loading-placeholder">
+                <div class="loading"></div>
+                <p>Loading scan history...</p>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="card">
+        <h3><i class="fas fa-list"></i> Detailed Findings</h3>
+        <div class="table-controls">
+            <div class="filter-controls">
+                <select id="severityFilter" onchange="filterFindings()">
+                    <option value="">All Severities</option>
+                    <option value="HIGH">High Risk</option>
+                    <option value="MEDIUM">Medium Risk</option>
+                    <option value="LOW">Low Risk</option>
+                </select>
+                <select id="typeFilter" onchange="filterFindings()">
+                    <option value="">All Types</option>
+                    <option value="S3_PUBLIC_ACCESS">S3 Public Access</option>
+                    <option value="EC2_OPEN_SECURITY_GROUP">EC2 Security Groups</option>
+                    <option value="IAM_OVERPRIVILEGED">IAM Overprivileged</option>
+                    <option value="RDS_PUBLIC_ACCESS">RDS Public Access</option>
+                </select>
+            </div>
+            <div class="search-controls">
+                <input type="text" id="searchFindings" placeholder="Search findings..." onkeyup="filterFindings()">
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table class="findings-table" id="findingsTable">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Type</th>
+                        <th>Resource</th>
+                        <th>Severity</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="findingsTableBody">
+                    <tr class="no-data">
+                        <td colspan="6">No findings available. Run a scan to see results.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <div class="card chart-container">
+        <h3 class="chart-title"><i class="fas fa-chart-pie"></i> Risk Distribution</h3>
+        <div class="chart-placeholder" id="riskChart">
+            <div class="chart-legend">
+                <div class="legend-item high">
+                    <span class="legend-color"></span>
+                    <span class="legend-label">High Risk</span>
+                    <span class="legend-count" id="chartHighCount">0</span>
+                </div>
+                <div class="legend-item medium">
+                    <span class="legend-color"></span>
+                    <span class="legend-label">Medium Risk</span>
+                    <span class="legend-count" id="chartMediumCount">0</span>
+                </div>
+                <div class="legend-item low">
+                    <span class="legend-color"></span>
+                    <span class="legend-label">Low Risk</span>
+                    <span class="legend-count" id="chartLowCount">0</span>
+                </div>
+            </div>
+            <div class="chart-visual" id="chartVisual">
+                <div class="chart-bar high" id="chartBarHigh"></div>
+                <div class="chart-bar medium" id="chartBarMedium"></div>
+                <div class="chart-bar low" id="chartBarLow"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="card">
+        <h3><i class="fas fa-clock"></i> Recent Activity</h3>
+        <div class="activity-timeline" id="recentActivity">
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="activity-content">
+                    <h4>No recent activity</h4>
+                    <p>Run a security scan to see activity here.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.report-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.stats-icon.total-scans {
+    background: linear-gradient(135deg, #007BFF, #0056b3);
+}
+
+.scan-history {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.scan-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+.scan-item:hover {
+    background: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.scan-info h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.scan-info p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.scan-status {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.scan-status.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.scan-status.running {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.scan-status.failed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 15px;
+}
+
+.filter-controls select {
+    padding: 8px 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.search-controls input {
+    padding: 8px 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 250px;
+}
+
+.table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.findings-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.findings-table th {
+    background: #f8f9fa;
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.findings-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: top;
+}
+
+.findings-table tr:hover {
+    background: #f8f9fa;
+}
+
+.severity-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.severity-badge.high {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.severity-badge.medium {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.severity-badge.low {
+    background: #d4edda;
+    color: #155724;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.action-btn.view {
+    background: #007BFF;
+    color: white;
+}
+
+.action-btn.resolve {
+    background: #28a745;
+    color: white;
+}
+
+.action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.legend-item.high .legend-color {
+    background: #dc3545;
+}
+
+.legend-item.medium .legend-color {
+    background: #ffc107;
+}
+
+.legend-item.low .legend-color {
+    background: #28a745;
+}
+
+.legend-count {
+    font-weight: 600;
+    color: #333;
+}
+
+.chart-visual {
+    display: flex;
+    align-items: end;
+    height: 200px;
+    gap: 20px;
+    justify-content: center;
+    padding: 20px;
+}
+
+.chart-bar {
+    width: 60px;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.5s ease;
+    position: relative;
+}
+
+.chart-bar.high {
+    background: linear-gradient(to top, #dc3545, #c82333);
+}
+
+.chart-bar.medium {
+    background: linear-gradient(to top, #ffc107, #e0a800);
+}
+
+.chart-bar.low {
+    background: linear-gradient(to top, #28a745, #1e7e34);
+}
+
+.chart-bar::after {
+    content: attr(data-count);
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 600;
+    color: #333;
+}
+
+.loading-placeholder {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.no-data {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .report-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .table-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-controls {
+        flex-direction: column;
+    }
+    
+    .search-controls input {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .chart-legend {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .chart-visual {
+        height: 150px;
+    }
+    
+    .chart-bar {
+        width: 40px;
+    }
+}
+</style>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadReportData();
+    loadScanHistory();
+    loadRecentActivity();
+    
+
+    setInterval(loadReportData, 30000);
+});
+
+function loadReportData() {
+
+    fetch('/api/scan-status')
+        .then(response => response.json())
+        .then(data => {
+
+            document.getElementById('totalScans').textContent = data.total_sessions || 0;
+            
+
+            loadAllFindings();
+        })
+        .catch(error => {
+            console.error('Error loading report data:', error);
+
+            document.getElementById('totalScans').textContent = '0';
+            document.getElementById('totalHighRisk').textContent = '0';
+            document.getElementById('totalMediumRisk').textContent = '0';
+            document.getElementById('totalLowRisk').textContent = '0';
+        });
+}
+
+function loadScanHistory() {
+    const historyContainer = document.getElementById('scanHistory');
+    
+
+    const mockHistory = [
+        {
+            id: 'scan_001',
+            timestamp: new Date(Date.now() - 3600000).toISOString(),
+            type: 'AWS Security Scan',
+            status: 'completed',
+            findings: 5
+        },
+        {
+            id: 'scan_002',
+            timestamp: new Date(Date.now() - 7200000).toISOString(),
+            type: 'Comprehensive Scan',
+            status: 'completed',
+            findings: 12
+        },
+        {
+            id: 'scan_003',
+            timestamp: new Date(Date.now() - 10800000).toISOString(),
+            type: 'Quick Scan',
+            status: 'running',
+            findings: 0
+        }
+    ];
+    
+    historyContainer.innerHTML = '';
+    
+    mockHistory.forEach(scan => {
+        const scanItem = document.createElement('div');
+        scanItem.className = 'scan-item';
+        scanItem.innerHTML = `
+            <div class="scan-info">
+                <h4>${scan.type}</h4>
+                <p>${new Date(scan.timestamp).toLocaleString()} • ${scan.findings} findings</p>
+            </div>
+            <div class="scan-status ${scan.status}">${scan.status}</div>
+        `;
+        historyContainer.appendChild(scanItem);
+    });
+}
+
+function loadAllFindings() {
+
+    fetch('/api/scan-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.total_sessions > 0) {
+
+
+                loadFindingsFromSession();
+            } else {
+                loadFindings([]);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading findings:', error);
+            loadFindings([]);
+        });
+}
+
+function loadFindingsFromSession() {
+
+    fetch('/api/latest-session')
+        .then(response => response.json())
+        .then(data => {
+            if (data.session_id) {
+
+                fetch(`/api/findings/${data.session_id}`)
+                    .then(response => response.json())
+                    .then(findingsData => {
+                        if (findingsData.findings) {
+                            loadFindings(findingsData.findings);
+                            updateRiskChart(findingsData.summary);
+                        } else {
+                            loadFindings([]);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading findings from session:', error);
+                        loadFindings([]);
+                    });
+            } else {
+                loadFindings([]);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading latest session:', error);
+            loadFindings([]);
+        });
+}
+
+function loadFindings(findings) {
+    const tableBody = document.getElementById('findingsTableBody');
+    
+    tableBody.innerHTML = '';
+    
+    if (findings.length === 0) {
+        tableBody.innerHTML = '<tr class="no-data"><td colspan="6">No findings available. Run a scan to see results.</td></tr>';
+        
+
+        document.getElementById('totalHighRisk').textContent = '0';
+        document.getElementById('totalMediumRisk').textContent = '0';
+        document.getElementById('totalLowRisk').textContent = '0';
+        return;
+    }
+    
+
+    findings.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    findings.forEach(finding => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${new Date(finding.timestamp).toLocaleString()}</td>
+            <td>${finding.type.replace(/_/g, ' ')}</td>
+            <td>${finding.resource}</td>
+            <td><span class="severity-badge ${finding.severity.toLowerCase()}">${finding.severity}</span></td>
+            <td>${finding.description}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="action-btn view" onclick="viewFinding('${finding.type}')">View</button>
+                    <button class="action-btn resolve" onclick="resolveFinding('${finding.type}')">Resolve</button>
+                </div>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+
+    const highCount = findings.filter(f => f.severity === 'HIGH').length;
+    const mediumCount = findings.filter(f => f.severity === 'MEDIUM').length;
+    const lowCount = findings.filter(f => f.severity === 'LOW').length;
+    
+    document.getElementById('totalHighRisk').textContent = highCount;
+    document.getElementById('totalMediumRisk').textContent = mediumCount;
+    document.getElementById('totalLowRisk').textContent = lowCount;
+}
+
+function updateRiskChart(data) {
+
+    const highCount = data.high || data.totalHighRisk || 0;
+    const mediumCount = data.medium || data.totalMediumRisk || 0;
+    const lowCount = data.low || data.totalLowRisk || 0;
+    const total = highCount + mediumCount + lowCount;
+    
+    if (total === 0) {
+        document.getElementById('chartBarHigh').style.height = '0px';
+        document.getElementById('chartBarMedium').style.height = '0px';
+        document.getElementById('chartBarLow').style.height = '0px';
+        return;
+    }
+    
+    const highPercent = (highCount / total) * 100;
+    const mediumPercent = (mediumCount / total) * 100;
+    const lowPercent = (lowCount / total) * 100;
+    
+    document.getElementById('chartBarHigh').style.height = `${highPercent}%`;
+    document.getElementById('chartBarMedium').style.height = `${mediumPercent}%`;
+    document.getElementById('chartBarLow').style.height = `${lowPercent}%`;
+    
+    document.getElementById('chartBarHigh').setAttribute('data-count', highCount);
+    document.getElementById('chartBarMedium').setAttribute('data-count', mediumCount);
+    document.getElementById('chartBarLow').setAttribute('data-count', lowCount);
+    
+    document.getElementById('chartHighCount').textContent = highCount;
+    document.getElementById('chartMediumCount').textContent = mediumCount;
+    document.getElementById('chartLowCount').textContent = lowCount;
+}
+
+function loadRecentActivity() {
+    const activityContainer = document.getElementById('recentActivity');
+    
+    const mockActivity = [
+        {
+            icon: 'fas fa-search',
+            title: 'Security scan completed',
+            description: 'AWS Security Scan found 5 new issues'
+        },
+        {
+            icon: 'fas fa-exclamation-triangle',
+            title: 'High risk finding detected',
+            description: 'S3 bucket my-data-bucket-001 is publicly accessible'
+        },
+        {
+            icon: 'fas fa-check-circle',
+            title: 'Issue resolved',
+            description: 'IAM policy updated for user admin-user-001'
+        }
+    ];
+    
+    activityContainer.innerHTML = '';
+    
+    mockActivity.forEach(activity => {
+        const activityItem = document.createElement('div');
+        activityItem.className = 'activity-item';
+        activityItem.innerHTML = `
+            <div class="activity-icon">
+                <i class="${activity.icon}"></i>
+            </div>
+            <div class="activity-content">
+                <h4>${activity.title}</h4>
+                <p>${activity.description}</p>
+            </div>
+        `;
+        activityContainer.appendChild(activityItem);
+    });
+}
+
+function filterFindings() {
+    const severityFilter = document.getElementById('severityFilter').value;
+    const typeFilter = document.getElementById('typeFilter').value;
+    const searchTerm = document.getElementById('searchFindings').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('#findingsTableBody tr');
+    
+    rows.forEach(row => {
+        if (row.classList.contains('no-data')) return;
+        
+        const severity = row.querySelector('.severity-badge').textContent;
+        const type = row.cells[1].textContent;
+        const resource = row.cells[2].textContent;
+        const description = row.cells[4].textContent;
+        
+        const matchesSeverity = !severityFilter || severity === severityFilter;
+        const matchesType = !typeFilter || type.toLowerCase().includes(typeFilter.toLowerCase());
+        const matchesSearch = !searchTerm || 
+            resource.toLowerCase().includes(searchTerm) ||
+            description.toLowerCase().includes(searchTerm) ||
+            type.toLowerCase().includes(searchTerm);
+        
+        if (matchesSeverity && matchesType && matchesSearch) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function viewFinding(findingType) {
+    showAlert(`Viewing details for ${findingType.replace(/_/g, ' ')}`, 'info');
+}
+
+function resolveFinding(findingType) {
+    showAlert(`Marking ${findingType.replace(/_/g, ' ')} as resolved`, 'success');
+}
+
+function refreshReports() {
+    showAlert('Refreshing reports...', 'info');
+    loadReportData();
+    loadScanHistory();
+    loadRecentActivity();
+}
+
+function exportAllReports() {
+    const reportData = {
+        timestamp: new Date().toISOString(),
+        summary: {
+            totalScans: document.getElementById('totalScans').textContent,
+            totalHighRisk: document.getElementById('totalHighRisk').textContent,
+            totalMediumRisk: document.getElementById('totalMediumRisk').textContent,
+            totalLowRisk: document.getElementById('totalLowRisk').textContent
+        }
+    };
+    
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `zer0cloud-reports-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showAlert('Reports exported successfully!', 'success');
+}
+
+function showAlert(message, type) {
+    const alertContainer = document.getElementById('alertContainer');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} fade-in`;
+    alert.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+        ${message}
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    alertContainer.appendChild(alert);
+    
+    setTimeout(() => {
+        if (alert.parentElement) {
+            alert.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}
