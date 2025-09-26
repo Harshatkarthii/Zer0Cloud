@@ -1,0 +1,5 @@
+flask
+boto3
+botocore
+requests
+python-dotenv
